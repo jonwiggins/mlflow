@@ -173,6 +173,7 @@ def deploy(
     instance_type=DEFAULT_SAGEMAKER_INSTANCE_TYPE,
     instance_count=DEFAULT_SAGEMAKER_INSTANCE_COUNT,
     vpc_config=None,
+    data_capture_config=None,
     flavor=None,
     synchronous=True,
     timeout_seconds=1200,
@@ -273,6 +274,25 @@ def deploy(
                         ]
                      }
         mfs.deploy(..., vpc_config=vpc_config)
+
+    :param data_capture_config: A dictionary specifying the data capture configuration to use when
+                       creating the new SageMaker model associated with this application. For more 
+                       information, see 
+                       https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_DataCaptureConfig.html.
+    
+    .. code-block:: python
+        :caption: Example
+
+        import mlflow.sagemaker as mfs
+        data_capture_config = {
+                        'EnableCapture': True,
+                        'InitalSamplingPercentage': 100,
+                        'DestinationS3Uri": 's3://my-bucket/path',
+                        'CaptureOptions': [
+                            {'CaptureMode': 'Output'}
+                        ],
+                     }
+        mfs.deploy(..., data_capture_config=data_capture_config)
 
     :param flavor: The name of the flavor of the model to use for deployment. Must be either
                    ``None`` or one of mlflow.sagemaker.SUPPORTED_DEPLOYMENT_FLAVORS. If ``None``,
@@ -395,6 +415,7 @@ def deploy(
             instance_type=instance_type,
             instance_count=instance_count,
             vpc_config=vpc_config,
+            data_capture_config=data_capture_config,
             role=execution_role_arn,
             sage_client=sage_client,
         )
@@ -1414,6 +1435,7 @@ def _create_sagemaker_endpoint(
     flavor,
     instance_type,
     vpc_config,
+    data_capture_config,
     instance_count,
     role,
     sage_client,
@@ -1430,6 +1452,8 @@ def _create_sagemaker_endpoint(
     :param instance_count: The number of SageMaker ML instances on which to deploy the model.
     :param vpc_config: A dictionary specifying the VPC configuration to use when creating the
                        new SageMaker model associated with this SageMaker endpoint.
+    :param data_capture_config: A dictionary specifying the data capture configuration to use when
+                       creating the new SageMaker model associated with this application.
     :param role: SageMaker execution ARN role.
     :param sage_client: A boto3 client for SageMaker.
     """
@@ -1455,9 +1479,12 @@ def _create_sagemaker_endpoint(
         "InitialVariantWeight": 1,
     }
     config_name = _get_sagemaker_config_name(endpoint_name)
+    if data_capture_config is None:
+        data_capture_config = {}
     endpoint_config_response = sage_client.create_endpoint_config(
         EndpointConfigName=config_name,
         ProductionVariants=[production_variant],
+        DataCaptureConfig=data_capture_config,
         Tags=[{"Key": "app_name", "Value": endpoint_name}],
     )
     _logger.info(
@@ -1876,7 +1903,7 @@ class SageMakerDeploymentClient(BaseDeploymentClient):
 
         int_fields = {"instance_count", "timeout_seconds"}
         bool_fields = {"synchronous", "archive"}
-        dict_fields = {"vpc_config"}
+        dict_fields = {"vpc_config", "data_capture_config"}
         for key, value in custom_config.items():
             if key not in config:
                 continue
@@ -2014,6 +2041,13 @@ class SageMakerDeploymentClient(BaseDeploymentClient):
                          method <https://boto3.readthedocs.io/en/latest/reference/services/sagemaker.html
                          #SageMaker.Client.create_model>`_. For more information, see
                          https://docs.aws.amazon.com/sagemaker/latest/dg/API_VpcConfig.html.
+                         Defaults to ``None``.
+
+                       - ``data_capture_config``: A dictionary specifying the data capture
+                         configuration to use when creating the new SageMaker model associated with
+                         this application.
+                         For more information, see
+                         https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_DataCaptureConfig.html.
                          Defaults to ``None``.
         :param endpoint: (optional) Endpoint to create the deployment under. Currently unsupported
 
