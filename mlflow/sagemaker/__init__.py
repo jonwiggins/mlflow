@@ -276,10 +276,10 @@ def deploy(
         mfs.deploy(..., vpc_config=vpc_config)
 
     :param data_capture_config: A dictionary specifying the data capture configuration to use when
-                       creating the new SageMaker model associated with this application. For more 
-                       information, see 
+                       creating the new SageMaker model associated with this application. For more
+                       information, see
                        https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_DataCaptureConfig.html.
-    
+
     .. code-block:: python
         :caption: Example
 
